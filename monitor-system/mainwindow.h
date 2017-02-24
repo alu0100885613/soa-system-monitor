@@ -7,6 +7,7 @@
 #include <QString>
 #include <QTableWidgetItem>
 #include <QtConcurrent>
+#include <QMessageBox>
 
 namespace Ui {
 class MainWindow;
@@ -23,7 +24,7 @@ public:
 private slots:
     void on_tabWidget_tabBarClicked(int index);
     void tab_process(void);
-    void set_processPID(const QString sdir, int i);
+    int set_processInfo(const QString sdir, int i);
 
 private:
     Ui::MainWindow *ui;
