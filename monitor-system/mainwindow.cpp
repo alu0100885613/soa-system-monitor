@@ -6,8 +6,10 @@ MainWindow::MainWindow(QWidget *parent) :
     ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
+    futurefunction();
     qRegisterMetaType< QVector<int> >("QVector<int>");
     qRegisterMetaType< Qt::Orientation >("Qt::Orientation");
+
 }
 
 MainWindow::~MainWindow()
@@ -15,53 +17,78 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::on_tabWidget_tabBarClicked(int index)
-{
-    switch (index) {
-    case 0: QtConcurrent::run(this,&MainWindow::tab_process);
-        break;
-    default:
-        break;
-    }
-}
+void MainWindow::futurefunction(){
 
-void MainWindow::tab_process()
-{
-    QDir dir("/proc");
+    QFuture<QStringList> futureAOP = QtConcurrent::run(this,&MainWindow::amountOfProc);
+    futureAOP.waitForFinished();
+    QStringList QSLResult = futureAOP.result();
 
-    dir.setFilter(QDir::Dirs);
-    const QStringList regexp("[0-9]*");
     const QStringList headers  = (QStringList() << "PID" << "STATUS" << "TRHEADS" << "OWNER" << "CMDLINE" );
-    dir.setNameFilters( regexp );
-    ui->processTable->setRowCount(dir.count());
-    ui->processTable->setColumnCount(5);
-    ui->processTable->setHorizontalHeaderLabels( headers );
+    ui->processTable->setColumnCount(headers.size());
+    ui->processTable->setRowCount(QSLResult.size());
+    ui->processTable->setHorizontalHeaderLabels(headers);
 
+    QFuture<QList<QTableWidgetItem*>> futureDOP = QtConcurrent::run(this,&MainWindow::dataOfProc,QSLResult);
+    futureDOP.waitForFinished();
+    QList<QTableWidgetItem*> ILResult = futureDOP.result();
 
     int i = 0;
-    for(auto directory: dir.entryList()){
-        if( set_processInfo( directory,i ) == -1 )
-            return;
+    for(auto item: ILResult){
+        ui->processTable->setItem(i/headers.size(),i%headers.size(),item);
         i++;
     }
 
     ui->processTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
 
-int MainWindow::set_processInfo( const QString sdir,int i )
-{
+QStringList MainWindow::amountOfProc(){
 
+    QDir dir("/proc");
+    dir.setFilter(QDir::Dirs);
+    const QStringList regexp("[0-9]*");
+    dir.setNameFilters( regexp );
+    return dir.entryList();
+}
+
+QList<QTableWidgetItem*> MainWindow::dataOfProc(QStringList qsl){
+
+    QList<QTableWidgetItem*> toReturn;
+    QList<QTableWidgetItem*> toWork;
+
+    for(auto directory: qsl){
+        toWork = get_processInfo(directory);
+        for(auto item: toWork){
+
+            toReturn.push_back(item);
+        }
+    }
+    return toReturn;
+}
+
+void MainWindow::on_tabWidget_tabBarClicked(int index)
+{
+    switch (index) {
+    case 0:
+        break;
+    default:
+        break;
+    }
+}
+
+
+QList<QTableWidgetItem*> MainWindow::get_processInfo(const QString sdir)
+{
+    QList<QTableWidgetItem*> toReturn;
     const QString sstate = "State:";
     const QString sthread = "Threads:";
     const QString suid = "Uid:";
 
     QTableWidgetItem *item = new QTableWidgetItem(sdir);
-    ui->processTable->setItem(i,0,item);
+    toReturn.push_back(item);
 
     QFile file_status("/proc/"+sdir+"/status");
     if ( !file_status.open(QIODevice::ReadOnly) ){
-        QMessageBox::warning( this,tr("Warning"),tr("No se ha podido abrir el archivo de status en /proc/") );
-        return -1;
+
     } else {
         QTextStream in (&file_status);
         QString line;
@@ -71,17 +98,17 @@ int MainWindow::set_processInfo( const QString sdir,int i )
 
             if( line.contains(sstate) ){
                QTableWidgetItem *item = new QTableWidgetItem(line);
-               ui->processTable->setItem(i,1,item);
+               toReturn.append(item);
             }
 
             if( line.contains(sthread) ){
                QTableWidgetItem *item = new QTableWidgetItem(line);
-               ui->processTable->setItem(i,2,item);
+               toReturn.append(item);
             }
 
             if( line.contains(suid) ){
                QTableWidgetItem *item = new QTableWidgetItem(line);
-               ui->processTable->setItem(i,3,item);
+               toReturn.append(item);
             }
 
         } while ( !line.isNull() );
@@ -90,17 +117,16 @@ int MainWindow::set_processInfo( const QString sdir,int i )
 
     QFile file_cmdline("/proc/"+sdir+"/cmdline");
     if ( !file_cmdline.open(QIODevice::ReadOnly) ){
-        QMessageBox::warning( this,tr("Warning"),tr("No se ha podido abrir el archivo de cmdline en /proc/") );
-        return -1;
+        QMessageBox::warning(this,tr("Warning"),tr("No se ha podido abrir el archivo de cmdline en /proc/"));
     } else {
         QTextStream in (&file_cmdline);
         const QString content = in.readAll();
 
         QTableWidgetItem *item = new QTableWidgetItem(content);
-        ui->processTable->setItem(i,4,item);
+        toReturn.append(item);
 
     }
     file_cmdline.close();
 
-    return 0;
+    return toReturn;
 }

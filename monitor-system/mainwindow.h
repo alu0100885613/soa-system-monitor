@@ -23,8 +23,10 @@ public:
 
 private slots:
     void on_tabWidget_tabBarClicked(int index);
-    void tab_process(void);
-    int set_processInfo(const QString sdir, int i);
+    QList<QTableWidgetItem*> get_processInfo(const QString sdir);
+    void futurefunction(void);
+    QStringList amountOfProc(void);
+    QList<QTableWidgetItem*> dataOfProc(QStringList qsl);
 
 private:
     Ui::MainWindow *ui;
