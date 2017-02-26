@@ -27,9 +27,13 @@ private slots:
     void futurefunction(void);
     QStringList amountOfProc(void);
     QList<QTableWidgetItem*> dataOfProc(QStringList qsl);
+    void uiEditTable(void);
+    void uiEditData(void);
 
 private:
     Ui::MainWindow *ui;
+    QFutureWatcher<QStringList>* fwi;
+    QFutureWatcher<QList<QTableWidgetItem*>>* fwl;
 };
 
 #endif // MAINWINDOW_H

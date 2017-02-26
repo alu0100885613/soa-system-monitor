@@ -3,9 +3,13 @@
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
-    ui(new Ui::MainWindow)
+    ui(new Ui::MainWindow),
+    fwi(new QFutureWatcher<QStringList>),
+    fwl(new QFutureWatcher<QList<QTableWidgetItem*>>)
 {
     ui->setupUi(this);
+    connect(fwi,SIGNAL(finished()),this,SLOT(uiEditTable()));
+    connect(fwl,SIGNAL(finished()),this,SLOT(uiEditData()));
     futurefunction();
     qRegisterMetaType< QVector<int> >("QVector<int>");
     qRegisterMetaType< Qt::Orientation >("Qt::Orientation");
@@ -17,32 +21,44 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
-void MainWindow::futurefunction(){
+void MainWindow::uiEditTable(void)
+{
+    QStringList QSLResult = fwi->future();
 
-    QFuture<QStringList> futureAOP = QtConcurrent::run(this,&MainWindow::amountOfProc);
-    futureAOP.waitForFinished();
-    QStringList QSLResult = futureAOP.result();
-
-    const QStringList headers  = (QStringList() << "PID" << "STATUS" << "TRHEADS" << "OWNER" << "CMDLINE" );
+    const QStringList headers  = (QStringList() << "PID" << "STATUS" << "OWNER" << "THREADS" << "CMDLINE" );
     ui->processTable->setColumnCount(headers.size());
     ui->processTable->setRowCount(QSLResult.size());
     ui->processTable->setHorizontalHeaderLabels(headers);
-
-    QFuture<QList<QTableWidgetItem*>> futureDOP = QtConcurrent::run(this,&MainWindow::dataOfProc,QSLResult);
-    futureDOP.waitForFinished();
-    QList<QTableWidgetItem*> ILResult = futureDOP.result();
-
-    int i = 0;
-    for(auto item: ILResult){
-        ui->processTable->setItem(i/headers.size(),i%headers.size(),item);
-        i++;
-    }
-
     ui->processTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
 }
 
-QStringList MainWindow::amountOfProc(){
 
+void MainWindow::uiEditData(void)
+{
+    QList<QTableWidgetItem*> ILResult = fwl->future();
+    int i = 0;
+
+    int headersSize = ui->processTable->columnCount();
+    for(auto item: ILResult){
+        ui->processTable->setItem(i/headersSize,i%headersSize,item);
+        i++;
+    }
+}
+
+void MainWindow::futurefunction()
+{
+
+    QFuture<QStringList> futureAOP = QtConcurrent::run(this,&MainWindow::amountOfProc);
+    fwi->setFuture(futureAOP);
+
+    QStringList QSLResult = fwi->future();
+    QFuture<QList<QTableWidgetItem*>> futureDOP = QtConcurrent::run(this,&MainWindow::dataOfProc,QSLResult);
+    fwl->setFuture(futureDOP);
+
+}
+
+QStringList MainWindow::amountOfProc()
+{
     QDir dir("/proc");
     dir.setFilter(QDir::Dirs);
     const QStringList regexp("[0-9]*");
@@ -50,7 +66,8 @@ QStringList MainWindow::amountOfProc(){
     return dir.entryList();
 }
 
-QList<QTableWidgetItem*> MainWindow::dataOfProc(QStringList qsl){
+QList<QTableWidgetItem*> MainWindow::dataOfProc(QStringList qsl)
+{
 
     QList<QTableWidgetItem*> toReturn;
     QList<QTableWidgetItem*> toWork;
@@ -68,7 +85,7 @@ QList<QTableWidgetItem*> MainWindow::dataOfProc(QStringList qsl){
 void MainWindow::on_tabWidget_tabBarClicked(int index)
 {
     switch (index) {
-    case 0:
+    case 0: futurefunction();
         break;
     default:
         break;
@@ -85,7 +102,6 @@ QList<QTableWidgetItem*> MainWindow::get_processInfo(const QString sdir)
 
     QTableWidgetItem *item = new QTableWidgetItem(sdir);
     toReturn.push_back(item);
-
     QFile file_status("/proc/"+sdir+"/status");
     if ( !file_status.open(QIODevice::ReadOnly) ){
 
