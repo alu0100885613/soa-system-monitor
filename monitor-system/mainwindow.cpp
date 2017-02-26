@@ -61,6 +61,7 @@ QStringList MainWindow::amountOfProc()
 {
     QDir dir("/proc");
     dir.setFilter(QDir::Dirs);
+    dir.setSorting(QDir::LocaleAware);
     const QStringList regexp("[0-9]*");
     dir.setNameFilters( regexp );
     return dir.entryList();
@@ -104,36 +105,71 @@ QList<QTableWidgetItem*> MainWindow::get_processInfo(const QString sdir)
     toReturn.push_back(item);
     QFile file_status("/proc/"+sdir+"/status");
     if ( !file_status.open(QIODevice::ReadOnly) ){
-
+        //algo
     } else {
         QTextStream in (&file_status);
         QString line;
+        QStringList splited;
 
         do{
             line = in.readLine();
+            splited = line.split('\t');
 
             if( line.contains(sstate) ){
-               QTableWidgetItem *item = new QTableWidgetItem(line);
+
+               QTableWidgetItem *item = new QTableWidgetItem(splited[1]);
                toReturn.append(item);
+
             }
 
             if( line.contains(sthread) ){
-               QTableWidgetItem *item = new QTableWidgetItem(line);
+
+               QTableWidgetItem *item = new QTableWidgetItem(splited[1]);
                toReturn.append(item);
+
             }
 
             if( line.contains(suid) ){
-               QTableWidgetItem *item = new QTableWidgetItem(line);
-               toReturn.append(item);
+
+               QString uid = splited[1];
+               QFile file_passwd("/etc/passwd");
+               if(!file_passwd.open(QIODevice::ReadOnly)){
+
+                    QTableWidgetItem *item = new QTableWidgetItem(uid);
+                    toReturn.append(item);
+
+               } else {
+
+                   QTextStream _in (&file_passwd);
+                   QString _line;
+                   QStringList _splited;
+                   bool exit = false;
+
+                   do {
+
+                       _line = _in.readLine();
+                       _splited = _line.split(':');
+
+                       if(_splited[2] == uid){
+                           QTableWidgetItem *item = new QTableWidgetItem(_splited[0]);
+                           toReturn.append(item);
+                           exit = true;
+                       }
+
+                   } while(!_line.isNull() && !exit);
+
+                   file_passwd.close();
+               }
             }
 
-        } while ( !line.isNull() );
+        } while (!line.isNull());
+
+        file_status.close();
     }
-    file_status.close();
 
     QFile file_cmdline("/proc/"+sdir+"/cmdline");
     if ( !file_cmdline.open(QIODevice::ReadOnly) ){
-        QMessageBox::warning(this,tr("Warning"),tr("No se ha podido abrir el archivo de cmdline en /proc/"));
+        //algo
     } else {
         QTextStream in (&file_cmdline);
         const QString content = in.readAll();
@@ -141,8 +177,8 @@ QList<QTableWidgetItem*> MainWindow::get_processInfo(const QString sdir)
         QTableWidgetItem *item = new QTableWidgetItem(content);
         toReturn.append(item);
 
+        file_cmdline.close();
     }
-    file_cmdline.close();
 
     return toReturn;
 }
