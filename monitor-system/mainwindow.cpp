@@ -19,6 +19,7 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(timer,SIGNAL(timeout()),this,SLOT(futurefunction()));
     connect(this,SIGNAL(workRequest()),&windowWorker_,SLOT(doWork()));
     connect(&windowWorker_,SIGNAL(workFinished(QByteArray)),this,SLOT(uiHardware(QByteArray)));
+    connect(this,SIGNAL(abort()),this,SLOT(errorFatal()));
 
     windowWorker_.moveToThread(&workingThread_);
     workingThread_.start();
@@ -37,6 +38,12 @@ MainWindow::~MainWindow()
 
     workingThread_.quit();
     workingThread_.wait();
+}
+
+void MainWindow::errorFatal(void){
+
+    QMessageBox::warning( this,tr("Warning"),tr("No se ha podido abrir el archivo en /proc/"));
+    timer->stop();
 }
 
 void MainWindow::uiEditTable(void)
@@ -63,7 +70,8 @@ void MainWindow::uiEditData(void)
     }
 }
 
-void MainWindow::uiHardware(QByteArray data){
+void MainWindow::uiHardware(QByteArray data)
+{
 
     QJsonModel *model = new QJsonModel;
     ui->treeHw->setModel(model);
@@ -89,6 +97,10 @@ QStringList MainWindow::amountOfProc()
     dir.setSorting(QDir::LocaleAware);
     const QStringList regexp("[0-9]*");
     dir.setNameFilters( regexp );
+
+    if(dir.entryList().isEmpty())
+        emit abort();
+
     return dir.entryList();
 }
 
@@ -120,7 +132,7 @@ QList<QTableWidgetItem*> MainWindow::get_processInfo(const QString sdir)
     toReturn.push_back(item);
     QFile file_status("/proc/"+sdir+"/status");
     if ( !file_status.open(QIODevice::ReadOnly) ){
-        //algo
+        emit abort();
     } else {
         QTextStream in (&file_status);
         QString line;
@@ -184,7 +196,7 @@ QList<QTableWidgetItem*> MainWindow::get_processInfo(const QString sdir)
 
     QFile file_cmdline("/proc/"+sdir+"/cmdline");
     if ( !file_cmdline.open(QIODevice::ReadOnly) ){
-        //algo
+        emit abort();
     } else {
         QTextStream in (&file_cmdline);
         const QString content = in.readAll();

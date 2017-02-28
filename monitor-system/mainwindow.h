@@ -27,6 +27,7 @@ public:
 
 signals:
     void workRequest(void);
+    void abort(void);
 
 private slots:
     QList<QTableWidgetItem*> get_processInfo(const QString sdir);
@@ -36,6 +37,7 @@ private slots:
     void uiEditTable(void);
     void uiEditData(void);
     void uiHardware(QByteArray data);
+    void errorFatal(void);
 
 private:
     Ui::MainWindow *ui;
