@@ -1,24 +1,42 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include "windowworker.h"
+#include "qjsonmodel.cpp"
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     fwi(new QFutureWatcher<QStringList>),
-    fwl(new QFutureWatcher<QList<QTableWidgetItem*>>)
+    fwl(new QFutureWatcher<QList<QTableWidgetItem*>>),
+    timer(new QTimer),
+    workingThread_(),
+    windowWorker_()
 {
     ui->setupUi(this);
+    qRegisterMetaType<QByteArray>("QByteArray");
     connect(fwi,SIGNAL(finished()),this,SLOT(uiEditTable()));
     connect(fwl,SIGNAL(finished()),this,SLOT(uiEditData()));
-    futurefunction();
-    qRegisterMetaType< QVector<int> >("QVector<int>");
-    qRegisterMetaType< Qt::Orientation >("Qt::Orientation");
+    connect(timer,SIGNAL(timeout()),this,SLOT(futurefunction()));
+    connect(this,SIGNAL(workRequest()),&windowWorker_,SLOT(doWork()));
+    connect(&windowWorker_,SIGNAL(workFinished(QByteArray)),this,SLOT(uiHardware(QByteArray)));
 
+    windowWorker_.moveToThread(&workingThread_);
+    workingThread_.start();
+    emit workRequest();
+    futurefunction();
+
+    timer->start(5000);
 }
 
 MainWindow::~MainWindow()
 {
     delete ui;
+    delete fwi;
+    delete fwl;
+    delete timer;
+
+    workingThread_.quit();
+    workingThread_.wait();
 }
 
 void MainWindow::uiEditTable(void)
@@ -43,6 +61,13 @@ void MainWindow::uiEditData(void)
         ui->processTable->setItem(i/headersSize,i%headersSize,item);
         i++;
     }
+}
+
+void MainWindow::uiHardware(QByteArray data){
+
+    QJsonModel *model = new QJsonModel;
+    ui->treeHw->setModel(model);
+    model->loadJson(data);
 }
 
 void MainWindow::futurefunction()
@@ -81,16 +106,6 @@ QList<QTableWidgetItem*> MainWindow::dataOfProc(QStringList qsl)
         }
     }
     return toReturn;
-}
-
-void MainWindow::on_tabWidget_tabBarClicked(int index)
-{
-    switch (index) {
-    case 0: futurefunction();
-        break;
-    default:
-        break;
-    }
 }
 
 
