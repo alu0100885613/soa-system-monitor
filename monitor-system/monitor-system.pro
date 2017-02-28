@@ -23,8 +23,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 
 SOURCES += main.cpp\
-        mainwindow.cpp
+        mainwindow.cpp \
+    qjsonmodel.cpp
 
-HEADERS  += mainwindow.h
+HEADERS  += mainwindow.h \
+    windowworker.h \
+    qjsonmodel.h
 
 FORMS    += mainwindow.ui

@@ -14,11 +14,11 @@
    <string>MainWindow</string>
   </property>
   <widget class="QWidget" name="centralWidget">
-   <layout class="QGridLayout" name="gridLayout">
-    <item row="0" column="0">
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <item>
      <widget class="QTabWidget" name="tabWidget">
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <widget class="QWidget" name="Procesos">
        <attribute name="title">
@@ -49,15 +49,20 @@
         </item>
        </layout>
       </widget>
-      <widget class="QWidget" name="Hardware">
+      <widget class="QWidget" name="Net">
        <attribute name="title">
         <string>Net</string>
        </attribute>
       </widget>
-      <widget class="QWidget" name="Sensores">
+      <widget class="QWidget" name="Hardware">
        <attribute name="title">
-        <string>Sensores</string>
+        <string>Hardware</string>
        </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <item>
+         <widget class="QTreeView" name="treeHw"/>
+        </item>
+       </layout>
       </widget>
      </widget>
     </item>
