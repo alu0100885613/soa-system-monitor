@@ -29,6 +29,8 @@ void MainWindow::tab_process()
 {
     QDir dir("/proc");
 
+    QMessageBox::warning( this,tr("Warning"),tr("No se ha podido abrir el archivo de status en /proc/") );
+
     dir.setFilter(QDir::Dirs);
     const QStringList regexp("[0-9]*");
     const QStringList headers  = (QStringList() << "PID" << "STATUS" << "TRHEADS" << "OWNER" << "CMDLINE" );
