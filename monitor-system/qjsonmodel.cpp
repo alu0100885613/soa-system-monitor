@@ -149,8 +149,9 @@ bool QJsonModel::load(QIODevice *device)
 
 bool QJsonModel::loadJson(const QByteArray &json)
 {
+    qDebug() <<json;
     mDocument = QJsonDocument::fromJson(json);
-    qDebug() << mDocument;
+    //qDebug() << mDocument;
 
     if (!mDocument.isNull())
     {
