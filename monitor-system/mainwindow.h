@@ -12,6 +12,7 @@
 #include <QMessageBox>
 #include <QTimer>
 #include <QThread>
+#include <string>
 
 namespace Ui {
 class MainWindow;
@@ -36,7 +37,7 @@ private slots:
     QList<QTableWidgetItem*> dataOfProc(QStringList qsl);
     void uiEditTable(void);
     void uiEditData(void);
-    void uiHardware(QByteArray data);
+    void uiHardware(void);
     void errorFatal(void);
 
 private:

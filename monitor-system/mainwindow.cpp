@@ -13,12 +13,12 @@ MainWindow::MainWindow(QWidget *parent) :
     windowWorker_()
 {
     ui->setupUi(this);
-    qRegisterMetaType<QByteArray>("QByteArray");
+    //qRegisterMetaType<QByteArray>("QByteArray");
     connect(fwi,SIGNAL(finished()),this,SLOT(uiEditTable()));
     connect(fwl,SIGNAL(finished()),this,SLOT(uiEditData()));
     connect(timer,SIGNAL(timeout()),this,SLOT(futurefunction()));
     connect(this,SIGNAL(workRequest()),&windowWorker_,SLOT(doWork()));
-    connect(&windowWorker_,SIGNAL(workFinished(QByteArray)),this,SLOT(uiHardware(QByteArray)));
+    connect(&windowWorker_,SIGNAL(workFinished()),this,SLOT(uiHardware()));
     connect(this,SIGNAL(abort()),this,SLOT(errorFatal()));
 
     windowWorker_.moveToThread(&workingThread_);
@@ -70,12 +70,14 @@ void MainWindow::uiEditData(void)
     }
 }
 
-void MainWindow::uiHardware(QByteArray data)
+void MainWindow::uiHardware(void)
 {
-
     QJsonModel *model = new QJsonModel;
     ui->treeHw->setModel(model);
-    model->loadJson(data);
+
+    model->loadJson(windowWorker_.get_byteArray());
+
+    ui->treeHw->show();
 }
 
 void MainWindow::futurefunction()
@@ -83,6 +85,7 @@ void MainWindow::futurefunction()
 
     QFuture<QStringList> futureAOP = QtConcurrent::run(this,&MainWindow::amountOfProc);
     fwi->setFuture(futureAOP);
+    fwi->waitForFinished();
 
     QStringList QSLResult = fwi->future();
     QFuture<QList<QTableWidgetItem*>> futureDOP = QtConcurrent::run(this,&MainWindow::dataOfProc,QSLResult);
@@ -96,7 +99,7 @@ QStringList MainWindow::amountOfProc()
     dir.setFilter(QDir::Dirs);
     dir.setSorting(QDir::LocaleAware);
     const QStringList regexp("[0-9]*");
-    dir.setNameFilters( regexp );
+    dir.setNameFilters(regexp);
 
     if(dir.entryList().isEmpty())
         emit abort();
