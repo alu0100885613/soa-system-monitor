@@ -28,6 +28,8 @@ SOURCES += main.cpp\
 
 HEADERS  += mainwindow.h \
     windowworker.h \
-    qjsonmodel.h
+    qjsonmodel.h \
+    mythread.h \
+    circularbuffer.h
 
 FORMS    += mainwindow.ui
