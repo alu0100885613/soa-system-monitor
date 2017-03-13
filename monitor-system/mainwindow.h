@@ -2,6 +2,8 @@
 #define MAINWINDOW_H
 
 #include "windowworker.h"
+#include "circularbuffer.h"
+#include "mythread.h"
 
 #include <QMainWindow>
 #include <QDebug>
@@ -39,6 +41,8 @@ private slots:
     void uiEditData(void);
     void uiHardware(void);
     void errorFatal(void);
+    void netfunction(void);
+    void checkQeue(void);
 
 private:
     Ui::MainWindow *ui;
@@ -47,6 +51,8 @@ private:
     QTimer* timer;
     QThread workingThread_;
     WindowWorker windowWorker_;
+    CircularBuffer *sharedBuffer_;
+    MyThread netThread_;
 };
 
 #endif // MAINWINDOW_H

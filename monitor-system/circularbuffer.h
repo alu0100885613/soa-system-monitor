@@ -3,30 +3,33 @@
 #include <QString>
 #include <QWaitCondition>
 #include <QMutex>
+#include <QVector>
+
+class QVector<class T>;
 
 class CircularBuffer{
 
 public:
-    CircularBuffer(void):
-        follower_(-1),
-        size_(20),
-        buffer(new QStringList)
-    {}
+
+    CircularBuffer(int sz):
+        size_(sz),
+        begin_(0),
+        end_(size_-1),
+        buffer(size_)
+    {
+    }
 
     ~CircularBuffer(void){
-        if(buffer != NULL)
-            delete buffer;
-        buffer = NULL;
     }
 
     QString extract(void){
         mutex_.lock();
 
-        if(follower_ != -1)
-            bufferNotEmpty_.wait(&mutex);
+        if(empty())
+           bufferNotEmpty_.wait(&mutex_);
 
-        follower_--;
-        QString toReturn = buffer[follower_%size_];
+        begin_--;
+        QString toReturn = buffer[begin_%size_];
 
         mutex_.unlock();
 
@@ -36,18 +39,26 @@ public:
     void insert(QString s){
         mutex_.lock();
 
-        follower_++;
-        buffer[follower_%size_] = s;
+        buffer[begin_%size_] = s;
+        begin_++;
         bufferNotEmpty_.wakeAll();
 
         mutex_.unlock();
     }
 
-private:
-    int follower_;
-    int size_;
-    QStringList* buffer;
+    bool empty(){
+        if(begin_ == 0)
+            return true;
+        else
+            return false;
+    }
 
+private:
+
+    int size_;
+    int begin_;
+    int end_;
+    QVector<QString> buffer;
     QWaitCondition bufferNotEmpty_;
     QMutex mutex_;
 };

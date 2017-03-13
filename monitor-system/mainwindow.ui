@@ -55,7 +55,11 @@
        </attribute>
        <layout class="QGridLayout" name="gridLayout">
         <item row="0" column="0">
-         <widget class="QGraphicsView" name="graphicsView"/>
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>TextLabel</string>
+          </property>
+         </widget>
         </item>
        </layout>
       </widget>

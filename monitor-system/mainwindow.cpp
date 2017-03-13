@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
-#include "windowworker.h"
 #include "qjsonmodel.cpp"
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -10,7 +10,9 @@ MainWindow::MainWindow(QWidget *parent) :
     fwl(new QFutureWatcher<QList<QTableWidgetItem*>>),
     timer(new QTimer),
     workingThread_(),
-    windowWorker_()
+    windowWorker_(),
+    sharedBuffer_(new CircularBuffer(20)),
+    netThread_(sharedBuffer_)
 {
     ui->setupUi(this);
     //qRegisterMetaType<QByteArray>("QByteArray");
@@ -20,11 +22,13 @@ MainWindow::MainWindow(QWidget *parent) :
     connect(this,SIGNAL(workRequest()),&windowWorker_,SLOT(doWork()));
     connect(&windowWorker_,SIGNAL(workFinished()),this,SLOT(uiHardware()));
     connect(this,SIGNAL(abort()),this,SLOT(errorFatal()));
+    connect(&netThread_,SIGNAL(workReady()),this,SLOT(checkQeue()));
 
     windowWorker_.moveToThread(&workingThread_);
     workingThread_.start();
     emit workRequest();
     futurefunction();
+    netfunction();
 
     timer->start(5000);
 }
@@ -38,12 +42,22 @@ MainWindow::~MainWindow()
 
     workingThread_.quit();
     workingThread_.wait();
+    netThread_.quit();
+    netThread_.wait();
 }
 
 void MainWindow::errorFatal(void){
 
     QMessageBox::warning( this,tr("Warning"),tr("No se ha podido abrir el archivo en /proc/"));
     timer->stop();
+}
+
+void MainWindow::checkQeue(void){
+
+    ui->label->setText("Interfaces de red");
+    while(!sharedBuffer_->empty()){
+        ui->label->setText(ui->label->text() + sharedBuffer_->extract());
+    }
 }
 
 void MainWindow::uiEditTable(void)
@@ -78,6 +92,15 @@ void MainWindow::uiHardware(void)
     model->loadJson(windowWorker_.get_byteArray());
 
     ui->treeHw->show();
+}
+
+void MainWindow::netfunction(void){
+
+    netThread_.start();
+
+    qDebug() << sharedBuffer_->empty();
+
+
 }
 
 void MainWindow::futurefunction()
