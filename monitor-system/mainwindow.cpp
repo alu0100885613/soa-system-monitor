@@ -39,6 +39,7 @@ MainWindow::~MainWindow()
     delete fwi;
     delete fwl;
     delete timer;
+    delete sharedBuffer_;
 
     workingThread_.quit();
     workingThread_.wait();
@@ -54,7 +55,7 @@ void MainWindow::errorFatal(void){
 
 void MainWindow::checkQeue(void){
 
-    ui->label->setText("Interfaces de red");
+    ui->label->setText("Interfaces de red\n\n");
     while(!sharedBuffer_->empty()){
         ui->label->setText(ui->label->text() + sharedBuffer_->extract());
     }

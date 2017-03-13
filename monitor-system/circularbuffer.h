@@ -13,8 +13,8 @@ public:
 
     CircularBuffer(int sz):
         size_(sz),
-        begin_(0),
-        end_(size_-1),
+        pEx_(0),
+        pIn_(0),
         buffer(size_)
     {
     }
@@ -28,8 +28,8 @@ public:
         if(empty())
            bufferNotEmpty_.wait(&mutex_);
 
-        begin_--;
-        QString toReturn = buffer[begin_%size_];
+        QString toReturn = buffer[pEx_%size_];
+        pEx_++;
 
         mutex_.unlock();
 
@@ -39,15 +39,15 @@ public:
     void insert(QString s){
         mutex_.lock();
 
-        buffer[begin_%size_] = s;
-        begin_++;
+        buffer[pIn_%size_] = s;
+        pIn_++;
         bufferNotEmpty_.wakeAll();
 
         mutex_.unlock();
     }
 
     bool empty(){
-        if(begin_ == 0)
+        if(pIn_ == pEx_)
             return true;
         else
             return false;
@@ -56,8 +56,8 @@ public:
 private:
 
     int size_;
-    int begin_;
-    int end_;
+    int pEx_;
+    int pIn_;
     QVector<QString> buffer;
     QWaitCondition bufferNotEmpty_;
     QMutex mutex_;
