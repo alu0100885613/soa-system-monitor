@@ -8,7 +8,7 @@ Con la ayuda de Qt se ha creado un monitor del sistema para Linux, cabe destacar
 2. Situarse en el directorio del proyecto
 3. Ejecutar `qmake`. Esto generará en la carpeta un [Makefile](http://www.cprogramming.com/tutorial/makefiles.html).
 4. Ejecutar `make`. Esto genererá archivos .o, el ejecutable y los archivos moc y qrc.
-5. Listo, ejecutar el reproductor.app (doble click en carpeta) para abrir la aplicación.
+5. Listo, ejecutar el systemonitor.app (doble click en carpeta) para abrir la aplicación.
 6. Al terminar la ejecución y uso, usar `make clean` y `make distclean`. Las cosas bien recogidas.
 
 
