@@ -7,22 +7,22 @@ MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
     ui(new Ui::MainWindow),
     fwi(new QFutureWatcher<QStringList>),
-    fwl(new QFutureWatcher<QList<QTableWidgetItem*>>),
     timer(new QTimer),
     workingThread_(),
     windowWorker_(),
     sharedBuffer_(new CircularBuffer(20)),
-    netThread_(sharedBuffer_)
+    netThread_(sharedBuffer_),
+    currentRow_(0)
 {
     ui->setupUi(this);
     //qRegisterMetaType<QByteArray>("QByteArray");
     connect(fwi,SIGNAL(finished()),this,SLOT(uiEditTable()));
-    connect(fwl,SIGNAL(finished()),this,SLOT(uiEditData()));
     connect(timer,SIGNAL(timeout()),this,SLOT(futurefunction()));
     connect(this,SIGNAL(workRequest()),&windowWorker_,SLOT(doWork()));
     connect(&windowWorker_,SIGNAL(workFinished()),this,SLOT(uiHardware()));
     connect(this,SIGNAL(abort()),this,SLOT(errorFatal()));
     connect(&netThread_,SIGNAL(workReady()),this,SLOT(checkQeue()));
+    connect(this,SIGNAL(apocalipsis()),&netThread_,SLOT(kill()));
 
     windowWorker_.moveToThread(&workingThread_);
     workingThread_.start();
@@ -47,10 +47,17 @@ MainWindow::~MainWindow()
     netThread_.wait();
 }
 
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+    emit apocalipsis();
+}
+
 void MainWindow::errorFatal(void){
 
-    QMessageBox::warning( this,tr("Warning"),tr("No se ha podido abrir el archivo en /proc/"));
+    QTableWidgetItem* item = new QTableWidgetItem("NO INFO");
+    ui->processTable->setItem(currentRow_,0,item);
     timer->stop();
+
 }
 
 void MainWindow::checkQeue(void){
@@ -70,6 +77,8 @@ void MainWindow::uiEditTable(void)
     ui->processTable->setRowCount(QSLResult.size());
     ui->processTable->setHorizontalHeaderLabels(headers);
     ui->processTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
+
+    dataOfProc(QSLResult);
 }
 
 
@@ -78,11 +87,11 @@ void MainWindow::uiEditData(void)
     QList<QTableWidgetItem*> ILResult = fwl->future();
     int i = 0;
 
-    int headersSize = ui->processTable->columnCount();
     for(auto item: ILResult){
-        ui->processTable->setItem(i/headersSize,i%headersSize,item);
+        ui->processTable->setItem(currentRow_,i,item);
         i++;
     }
+    currentRow_++;
 }
 
 void MainWindow::uiHardware(void)
@@ -98,23 +107,12 @@ void MainWindow::uiHardware(void)
 void MainWindow::netfunction(void){
 
     netThread_.start();
-
-    qDebug() << sharedBuffer_->empty();
-
-
 }
 
 void MainWindow::futurefunction()
 {
-
     QFuture<QStringList> futureAOP = QtConcurrent::run(this,&MainWindow::amountOfProc);
     fwi->setFuture(futureAOP);
-    fwi->waitForFinished();
-
-    QStringList QSLResult = fwi->future();
-    QFuture<QList<QTableWidgetItem*>> futureDOP = QtConcurrent::run(this,&MainWindow::dataOfProc,QSLResult);
-    fwl->setFuture(futureDOP);
-
 }
 
 QStringList MainWindow::amountOfProc()
@@ -124,27 +122,27 @@ QStringList MainWindow::amountOfProc()
     dir.setSorting(QDir::LocaleAware);
     const QStringList regexp("[0-9]*");
     dir.setNameFilters(regexp);
-
-    if(dir.entryList().isEmpty())
-        emit abort();
-
     return dir.entryList();
 }
 
-QList<QTableWidgetItem*> MainWindow::dataOfProc(QStringList qsl)
+void MainWindow::dataOfProc(QStringList qsl)
 {
-
-    QList<QTableWidgetItem*> toReturn;
-    QList<QTableWidgetItem*> toWork;
-
     for(auto directory: qsl){
-        toWork = get_processInfo(directory);
-        for(auto item: toWork){
+        QFuture<QList<QTableWidgetItem*>> futureDOP = QtConcurrent::run(this,&MainWindow::get_processInfo,directory);
+        QFutureWatcher<QList<QTableWidgetItem*>>* fw = new QFutureWatcher<QList<QTableWidgetItem*>>;
+        fw->setFuture(futureDOP);
+        connect(fw,&QFutureWatcher<QList<QTableWidgetItem*>>::finished,this,[=]{
+            QList<QTableWidgetItem*> ILResult = fw->future();
+            int i = 0;
+            int hdsz = ui->processTable->columnCount();
 
-            toReturn.push_back(item);
-        }
+            for(auto item: ILResult){
+                ui->processTable->setItem(currentRow_,i%hdsz,item);
+                i++;
+            }
+            currentRow_++;
+         });
     }
-    return toReturn;
 }
 
 

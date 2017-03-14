@@ -14,15 +14,23 @@ signals:
 
     void workReady(void);
 
+private slots:
+
+    void kill(void){
+        run_ = false;
+    }
+
 public:
 
     MyThread(CircularBuffer *buffer, QObject *parent =0):
         QThread(parent),
-        sharedBuffer_(buffer)
+        sharedBuffer_(buffer),
+        run_(true)
     {}
 
+
     void run(void){
-        while(true){
+        while(run_){
             QProcess process;
             QString line;
             process.start("ifconfig");
@@ -46,6 +54,7 @@ public:
 
 private:
     CircularBuffer* sharedBuffer_;
+    bool run_;
 
 };
 

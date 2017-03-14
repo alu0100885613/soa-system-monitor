@@ -20,6 +20,7 @@ public:
     }
 
     ~CircularBuffer(void){
+        buffer.~QVector();
     }
 
     QString extract(void){

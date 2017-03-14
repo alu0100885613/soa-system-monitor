@@ -15,6 +15,7 @@
 #include <QTimer>
 #include <QThread>
 #include <string>
+#include <QEvent>
 
 namespace Ui {
 class MainWindow;
@@ -31,18 +32,20 @@ public:
 signals:
     void workRequest(void);
     void abort(void);
+    void apocalipsis(void);
 
 private slots:
     QList<QTableWidgetItem*> get_processInfo(const QString sdir);
     void futurefunction(void);
     QStringList amountOfProc(void);
-    QList<QTableWidgetItem*> dataOfProc(QStringList qsl);
+    void dataOfProc(QStringList qsl);
     void uiEditTable(void);
     void uiEditData(void);
     void uiHardware(void);
     void errorFatal(void);
     void netfunction(void);
     void checkQeue(void);
+    void closeEvent(QCloseEvent *event);
 
 private:
     Ui::MainWindow *ui;
@@ -53,6 +56,7 @@ private:
     WindowWorker windowWorker_;
     CircularBuffer *sharedBuffer_;
     MyThread netThread_;
+    int currentRow_;
 };
 
 #endif // MAINWINDOW_H
